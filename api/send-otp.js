@@ -1,5 +1,4 @@
 module.exports = async (req, res) => {
-  // Enable CORS if invoked across origins
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
@@ -34,16 +33,17 @@ module.exports = async (req, res) => {
     });
   }
 
-  const url = `https://graph.facebook.com/v20.0/${PHONE_ID}/messages`;
+  const url = `https://graph.facebook.com/v21.0/${PHONE_ID}/messages`;
 
-  // Meta Cloud API test payload
+  // Payload sending dynamic text message with the actual OTP
   const payload = {
     messaging_product: 'whatsapp',
+    recipient_type: 'individual',
     to: cleanPhone,
-    type: 'template',
-    template: {
-      name: 'hello_world', // Meta's built-in pre-approved test template
-      language: { code: 'en_US' }
+    type: 'text',
+    text: {
+      preview_url: false,
+      body: `Your Maid Attendance ${stage || 'SERVICE'} OTP is: *${otp}*`
     }
   };
 
