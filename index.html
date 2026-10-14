@@ -176,9 +176,33 @@
       }
     }
 
+    // window.requestOtp = async function(docId, stage, customerPhone) {
+    //   if (!customerPhone || customerPhone === 'undefined') {
+    //     return alert("Error: No phone number is saved for this customer. Please recreate the booking in the Admin panel.");
+    //   }
+
+    //   const otp = Math.floor(1000 + Math.random() * 9000).toString();
+    //   const ref = doc(db, "bookings", docId);
+      
+    //   try {
+    //     if (stage === 'START') {
+    //       await updateDoc(ref, { status: "START_OTP_PENDING", startOtp: otp });
+    //     } else {
+    //       await updateDoc(ref, { status: "FINISH_OTP_PENDING", finishOtp: otp });
+    //     }
+
+    //     await sendSmsWebhook(customerPhone, otp, stage);
+
+    //     alert("OTP successfully sent to the customer via SMS!");
+    //     showTasks(localStorage.getItem('maidId'), localStorage.getItem('maidName'));
+    //   } catch (err) {
+    //     alert("Update failed. Check connection.");
+    //   }
+    // };
+
     window.requestOtp = async function(docId, stage, customerPhone) {
       if (!customerPhone || customerPhone === 'undefined') {
-        return alert("Error: No phone number is saved for this customer. Please recreate the booking in the Admin panel.");
+        return alert("Error: No customer phone found for this booking.");
       }
 
       const otp = Math.floor(1000 + Math.random() * 9000).toString();
@@ -191,12 +215,25 @@
           await updateDoc(ref, { status: "FINISH_OTP_PENDING", finishOtp: otp });
         }
 
-        await sendSmsWebhook(customerPhone, otp, stage);
+        // Trigger our backend serverless route
+        const response = await fetch('/api/send-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: customerPhone, otp: otp, stage: stage })
+        });
 
-        alert("OTP successfully sent to the customer via SMS!");
+        const result = await response.json();
+
+        if (response.ok) {
+          alert(`OTP successfully sent to WhatsApp!`);
+        } else {
+          console.error("Meta API error:", result);
+          alert(`WhatsApp Delivery failed: ${result.error?.message || 'Check logs'}`);
+        }
+
         showTasks(localStorage.getItem('maidId'), localStorage.getItem('maidName'));
       } catch (err) {
-        alert("Update failed. Check connection.");
+        alert("Operation failed. Check network.");
       }
     };
 
