@@ -285,7 +285,7 @@
         }
 
         // 1. Dispatch SMS via MacroDroid Webhook
-        await sendSmsWebhook(customerPhone, otp, stage);
+        // await sendSmsWebhook(customerPhone, otp, stage);
 
         // 2. Dispatch WhatsApp via Serverless Function
         const response = await fetch('/api/send-otp', {
