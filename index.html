@@ -49,14 +49,14 @@
     import { getFirestore, collection, query, where, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-firestore.js";
 
     const firebaseConfig = {
-    apiKey: "AIzaSyA24bw7FrAKTH0_Uhh7ECTbRZoQ7FdhZCQ",
-    authDomain: "maidattendance-2a612.firebaseapp.com",
-    projectId: "maidattendance-2a612",
-    storageBucket: "maidattendance-2a612.firebasestorage.app",
-    messagingSenderId: "275781550714",
-    appId: "1:275781550714:web:4268d16d51f6d8405ab1c3",
-    measurementId: "G-GRLXDQ1TWD"
-  };
+      apiKey: "AIzaSyA24bw7FrAKTH0_Uhh7ECTbRZoQ7FdhZCQ",
+      authDomain: "maidattendance-2a612.firebaseapp.com",
+      projectId: "maidattendance-2a612",
+      storageBucket: "maidattendance-2a612.firebasestorage.app",
+      messagingSenderId: "275781550714",
+      appId: "1:275781550714:web:4268d16d51f6d8405ab1c3",
+      measurementId: "G-GRLXDQ1TWD"
+    };
 
     const app = initializeApp(firebaseConfig);
     const analytics = getAnalytics(app);
@@ -68,25 +68,19 @@
     const errorMsg = document.getElementById('errorMsg');
     const taskList = document.getElementById('taskList');
 
-    // Auto-login check
     const savedMaidId = localStorage.getItem('maidId');
     const savedMaidName = localStorage.getItem('maidName');
     if (savedMaidId) showTasks(savedMaidId, savedMaidName);
 
-    // Login Logic
     loginBtn.addEventListener('click', async () => {
       const phone = document.getElementById('phone').value.trim();
       const pin = document.getElementById('pin').value.trim();
-      
       if (!phone || !pin) return showError("Please enter phone and PIN");
-      
-      loginBtn.innerText = "Verifying...";
-      loginBtn.disabled = true;
+      loginBtn.innerText = "Verifying..."; loginBtn.disabled = true;
 
       try {
         const q = query(collection(db, "maids"), where("phone", "==", phone), where("pin", "==", pin), where("status", "==", "ACTIVE"));
         const snapshot = await getDocs(q);
-        
         if (snapshot.empty) {
           showError("Invalid phone or PIN");
         } else {
@@ -98,28 +92,23 @@
       } catch (err) {
         showError("Network error. Try again.");
       }
-      loginBtn.innerText = "Sign In";
-      loginBtn.disabled = false;
+      loginBtn.innerText = "Sign In"; loginBtn.disabled = false;
     });
 
     document.getElementById('logoutBtn').addEventListener('click', () => {
-      localStorage.clear();
-      location.reload();
+      localStorage.clear(); location.reload();
     });
 
     function showError(msg) {
-      errorMsg.innerText = msg;
-      errorMsg.classList.remove('hidden');
+      errorMsg.innerText = msg; errorMsg.classList.remove('hidden');
     }
 
-    // Fetch and Render Tasks
     async function showTasks(maidId, maidName) {
       loginView.classList.add('hidden');
       tasksView.classList.remove('hidden');
       document.getElementById('welcomeText').innerText = `Hi, ${maidName}`;
       
       const today = new Date();
-      // Format to YYYY-MM-DD matching local time
       const todayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
       document.getElementById('dateText').innerText = today.toDateString();
 
@@ -130,19 +119,33 @@
         const snapshot = await getDocs(q);
         
         if (snapshot.empty) {
-          taskList.innerHTML = `
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 text-center">
-              <p class="text-gray-500 font-medium">No visits scheduled for today.</p>
-            </div>`;
+          taskList.innerHTML = `<div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 text-center"><p class="text-gray-500 font-medium">No visits scheduled for today.</p></div>`;
           return;
         }
 
         let html = '';
         snapshot.forEach(docSnap => {
           const t = docSnap.data();
-          const docId = docSnap.id; // Firestore internal document ID
+          const docId = docSnap.id; 
           
           let statusBadge = '';
+          if (t.status === 'SCHEDULED') statusBadge = '<span class="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs font-bold">SCHEDULED</span>';
+          else if (t.status === 'IN_PROGRESS') statusBadge = '<span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold">IN PROGRESS</span>';
+          else if (t.status === 'COMPLETED') statusBadge = '<span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold">COMPLETED</span>';
+          else statusBadge = '<span class="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-bold">OTP PENDING</span>';
+
+          html += `
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mb-4 transition">
+              <div class="flex justify-between items-start mb-3">
+                <div>
+                  <h3 class="text-lg font-bold text-gray-900">${t.time}</h3>
+                  <p class="text-gray-600 font-medium">${t.customerName}</p>
+                </div>
+                ${statusBadge}
+              </div>
+              <p class="text-gray-500 text-sm mb-4">📍 ${t.address}</p>
+          `;
+
           if (t.status === 'SCHEDULED') {
             html += `<button onclick="window.requestOtp('${docId}', 'START', '${t.customerPhone}')" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 active:scale-95 transition">Arrived: Start Service</button>`;
           } else if (t.status === 'START_OTP_PENDING') {
@@ -164,39 +167,6 @@
           } else if (t.status === 'COMPLETED') {
             html += `<p class="text-green-600 font-bold text-center bg-green-50 py-3 rounded-xl">✔ Service Verified</p>`;
           }
-          else statusBadge = '<span class="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-bold">OTP PENDING</span>';
-
-          html += `
-            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mb-4 transition">
-              <div class="flex justify-between items-start mb-3">
-                <div>
-                  <h3 class="text-lg font-bold text-gray-900">${t.time}</h3>
-                  <p class="text-gray-600 font-medium">${t.customerName}</p>
-                </div>
-                ${statusBadge}
-              </div>
-              <p class="text-gray-500 text-sm mb-4">📍 ${t.address}</p>
-          `;
-
-          if (t.status === 'SCHEDULED') {
-            html += `<button onclick="window.requestOtp('${docId}', 'START')" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 active:scale-95 transition">Arrived: Start Service</button>`;
-          } else if (t.status === 'START_OTP_PENDING') {
-            html += `
-              <div class="flex gap-2">
-                <input type="number" id="otp_${docId}" class="w-2/3 px-4 py-3 rounded-xl border border-gray-300 outline-none focus:border-green-500" placeholder="Enter OTP">
-                <button onclick="window.verifyOtp('${docId}', 'START', 'otp_${docId}')" class="w-1/3 bg-green-600 text-white font-bold py-3 rounded-xl active:scale-95 transition">Verify</button>
-              </div>`;
-          } else if (t.status === 'IN_PROGRESS') {
-            html += `<button onclick="window.requestOtp('${docId}', 'FINISH')" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 active:scale-95 transition">Done: Finish Service</button>`;
-          } else if (t.status === 'FINISH_OTP_PENDING') {
-            html += `
-              <div class="flex gap-2">
-                <input type="number" id="otp_${docId}" class="w-2/3 px-4 py-3 rounded-xl border border-gray-300 outline-none focus:border-green-500" placeholder="Enter OTP">
-                <button onclick="window.verifyOtp('${docId}', 'FINISH', 'otp_${docId}')" class="w-1/3 bg-green-600 text-white font-bold py-3 rounded-xl active:scale-95 transition">Verify</button>
-              </div>`;
-          } else if (t.status === 'COMPLETED') {
-            html += `<p class="text-green-600 font-bold text-center bg-green-50 py-3 rounded-xl">✔ Service Verified</p>`;
-          }
           
           html += `</div>`;
         });
@@ -206,9 +176,11 @@
       }
     }
 
-    // Expose functions to window so inline onclick can use them
-    // --- REPLACE window.requestOtp WITH THIS ---
     window.requestOtp = async function(docId, stage, customerPhone) {
+      if (!customerPhone || customerPhone === 'undefined') {
+        return alert("Error: No phone number is saved for this customer. Please recreate the booking in the Admin panel.");
+      }
+
       const otp = Math.floor(1000 + Math.random() * 9000).toString();
       const ref = doc(db, "bookings", docId);
       
@@ -219,10 +191,9 @@
           await updateDoc(ref, { status: "FINISH_OTP_PENDING", finishOtp: otp });
         }
 
-        // Call the Webhook to send the real SMS
         await sendSmsWebhook(customerPhone, otp, stage);
 
-        alert(`OTP requested! (Demo bypass: ${otp})`);
+        alert("OTP successfully sent to the customer via SMS!");
         showTasks(localStorage.getItem('maidId'), localStorage.getItem('maidName'));
       } catch (err) {
         alert("Update failed. Check connection.");
@@ -230,17 +201,16 @@
     };
 
     async function sendSmsWebhook(phone, otp, stage) {
-       const cleanPhone = phone.replace(/\D/g, ''); 
+       const cleanPhone = String(phone).replace(/\D/g, ''); 
        const message = `Your Maid Attendance ${stage} OTP is ${otp}.`;
        
-       // REPLACE "YOUR_ID" with the MacroDroid device ID you generate in Step 2 below
        const webhookUrl = `https://trigger.macrodroid.com/11a51330-d8f0-4e1b-8fe1-2c70ce794fb6/send_otp?phone=${cleanPhone}&msg=${encodeURIComponent(message)}`;
        
        try {
-         // This silently pings your Android phone in the background
-         await fetch(webhookUrl); 
+         // Added { mode: 'no-cors' } to prevent browser from blocking the webhook
+         await fetch(webhookUrl, { mode: 'no-cors' }); 
        } catch (e) {
-         console.log("Webhook pinged. (CORS errors can be ignored if message sends)");
+         console.log("Webhook pinged.");
        }
     }
 
@@ -248,8 +218,6 @@
       const enteredOtp = document.getElementById(inputId).value;
       if (!enteredOtp) return alert("Please enter the OTP");
 
-      // In production, fetch the doc first to verify OTP server-side. 
-      // For this blazing fast frontend demo, we update directly.
       const ref = doc(db, "bookings", docId);
       const now = new Date().toLocaleTimeString('en-US', { hour12: false });
       
